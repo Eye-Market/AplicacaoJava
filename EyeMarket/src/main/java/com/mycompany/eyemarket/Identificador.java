@@ -5,7 +5,14 @@
 package com.mycompany.eyemarket;
 
 import com.github.britooo.looca.api.core.Looca;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.json.JSONObject;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -133,6 +140,17 @@ public class Identificador extends javax.swing.JFrame {
         Conexao connect = new Conexao();
         JdbcTemplate banco = connect.getConnection();
         TelaLogin telaLogin = new TelaLogin();
+        String diretorioRaiz = System.getProperty("user.dir");
+        FileWriter arq = null;
+        try {
+            arq = new FileWriter(diretorioRaiz + "\\logs\\instalacao.txt");
+        } catch (IOException ex) {
+            Logger.getLogger(Identificador.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        PrintWriter gravarArq = new PrintWriter(arq);
+        Slack slack = new Slack();
+        JSONObject obj = new JSONObject();
+        LocalDate data = LocalDate.now();
         Boolean isExisteTotem = false;
 
         Looca looca = new Looca();
@@ -155,7 +173,28 @@ public class Identificador extends javax.swing.JFrame {
 
         if (!isExisteTotem) {
             System.out.println("Entrei aqui");
-//            banco.execute("USE EyeMarket;");
+            String registro = String.format("\nInstalacao realizada com sucesso!"
+                    + "\nDados adquiridos da máquina: "
+                    + "\nId Maquina: %d"
+                    + "\nProcessador: %s"
+                    + "\nSistema Operaciona: %s"
+                    + "\nData de instalacao: " + data 
+                    + "\nEstado da máquina: normal",
+                    idMaquina, processador, sistemaOperacional);
+            gravarArq.printf(registro);
+            try {
+                arq.close();
+            } catch (IOException ex) {
+                Logger.getLogger(Identificador.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            obj.put("Maquina Registrada: ",registro);
+            try {
+                slack.sendMessage(obj);
+            } catch (IOException ex) {
+                Logger.getLogger(Identificador.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (InterruptedException ex) {
+                Logger.getLogger(Identificador.class.getName()).log(Level.SEVERE, null, ex);
+            }
             banco.execute(
                     String.format("INSERT INTO Totem VALUES(%d,'%s','%s','0000-00-00',1, 'normal');", idMaquina, processador, sistemaOperacional)
             );

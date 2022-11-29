@@ -1,0 +1,8 @@
+
+Instalacao realizada com sucesso!
+Dados adquiridos da máquina: 
+Id Maquina: 326
+Processador: AMD Ryzen 5 1600 Six-Core Processor            
+Sistema Operaciona: Windows
+Data de instalacao: 2022-11-29
+Estado da máquina: normal

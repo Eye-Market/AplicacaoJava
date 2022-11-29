@@ -6,12 +6,15 @@ package com.mycompany.eyemarket;
 
 import com.github.britooo.looca.api.core.Looca;
 import com.github.britooo.looca.api.util.Conversor;
+import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
@@ -297,38 +300,126 @@ public class Monitoramento extends javax.swing.JFrame {
 
             public void run() {
                 DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-	        Date date = new Date();
-	        String dataAtual =  dateFormat.format(date);
-                
+                Date date = new Date();
+                String dataAtual = dateFormat.format(date);
+
                 long memorialong = looca.getMemoria().getEmUso();
-                String memoria = Long.toString(memorialong) ;
-                
+                String memoria = Long.toString(memorialong);
+
                 long memoriaDisponivellong = looca.getMemoria().getDisponivel();
                 String memoriaDisponivel = Long.toString(memoriaDisponivellong);
-                
-                
-                long grupprocessolong =looca.getGrupoDeProcessos().getTotalProcessos();
+
+                long grupprocessolong = looca.getGrupoDeProcessos().getTotalProcessos();
                 String GrupoDeProcessos = Long.toString(grupprocessolong);
-                
-                
-                int i=looca.getGrupoDeProcessos().getTotalProcessos(); 
-                String processo =String.valueOf(i);
-                
+
+                int i = looca.getGrupoDeProcessos().getTotalProcessos();
+                String processo = String.valueOf(i);
+
                 Date ax = Date.from(looca.getSistema().getInicializado());
                 String sistema = String.valueOf(ax);
-                
+
                 String tempoAtividade = "" + looca.getSistema().getTempoDeAtividade();
-                
-                banco.update(String.format("INSERT INTO DadosTotem VALUES('%s',%s,%s,%s,%s,%d);"
-                        ,dataAtual,memoria,memoriaDisponivel,processo,tempoAtividade,identificador));
-                       
-                        
-                       
 
-              
+                banco.update(String.format("INSERT INTO DadosTotem VALUES('%s',%s,%s,%s,%s,%d);",
+                        dataAtual, memoria, memoriaDisponivel, processo, tempoAtividade, identificador));
 
-             //   List useBanco = banco.queryForList("SELECT * FROM DadosTotem;");
-              //  System.out.println(useBanco);
+                //VALIDACAO INCIDENTES
+                Integer status = 3;
+
+                if (memorialong > 1753536) {
+                    if (status == 1) {
+
+                    } else {
+                        status = 1;
+                        banco.update(String.format("INSERT INTO Incidentes VALUES('%s','Problema com memória RAM',"
+                                + "'critico',%d,'1');", dataAtual, idMaquina));
+
+                        String registro = String.format("\nIncidente detectado, Memoria Cheia!"
+                                + "\nId Maquina: %d"
+                                + "\nProcessador: %s"
+                                + "\nSistema Operaciona: %s"
+                                + "\nData de instalacao: " + data
+                                + "\nEstado da máquina: critico",
+                                idMaquina, processador, sistemaOperacional);
+                        gravarErro.printf(registro);
+                        try {
+                            erro.close();
+                        } catch (IOException ex) {
+                            Logger.getLogger(CLI.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+
+                        obj.put("Erro Registrado: ", registro);
+                        try {
+                            slack.sendMessage(obj);
+                        } catch (IOException ex) {
+                            Logger.getLogger(CLI.class.getName()).log(Level.SEVERE, null, ex);
+                        } catch (InterruptedException ex) {
+                            Logger.getLogger(CLI.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                    }
+                } else if (memorialong > 1461280 && memorialong <= 1753536) {
+                    if (status == 2) {
+
+                    } else {
+                        status = 2;
+                        banco.update(String.format("INSERT INTO Incidentes VALUES('%s','Problema com memória RAM',"
+                                + "'atencao',%d,'1');", dataAtual, idMaquina));
+
+                        String registro = String.format("\nIncidente próximo, Memoria em Risco!"
+                                + "\nId Maquina: %d"
+                                + "\nProcessador: %s"
+                                + "\nSistema Operaciona: %s"
+                                + "\nData de instalacao: " + data
+                                + "\nEstado da máquina: atencao",
+                                idMaquina, processador, sistemaOperacional);
+                        gravarErro.printf(registro);
+                        try {
+                            erro.close();
+                        } catch (IOException ex) {
+                            Logger.getLogger(CLI.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+
+                        obj.put("Erro Registrado: ", registro);
+                        try {
+                            slack.sendMessage(obj);
+                        } catch (IOException ex) {
+                            Logger.getLogger(CLI.class.getName()).log(Level.SEVERE, null, ex);
+                        } catch (InterruptedException ex) {
+                            Logger.getLogger(CLI.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                    }
+                } else {
+                    if (status == 3) {
+
+                    } else {
+                        status = 3;
+                        banco.update(String.format("INSERT INTO Incidentes VALUES('%s','Erro de Memoria Corrigido',"
+                                + "'normal',%d,'1');", dataAtual, idMaquina));
+
+                        String registro = String.format("\nIncidente corrigido, Memoria em estado normal!"
+                                + "\nId Maquina: %d"
+                                + "\nProcessador: %s"
+                                + "\nSistema Operaciona: %s"
+                                + "\nData de instalacao: " + data
+                                + "\nEstado da máquina: normal",
+                                idMaquina, processador, sistemaOperacional);
+                        gravarErro.printf(registro);
+                        try {
+                            erro.close();
+                        } catch (IOException ex) {
+                            Logger.getLogger(CLI.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+
+                        obj.put("Correção Registrado: ", registro);
+                        try {
+                            slack.sendMessage(obj);
+                        } catch (IOException ex) {
+                            Logger.getLogger(CLI.class.getName()).log(Level.SEVERE, null, ex);
+                        } catch (InterruptedException ex) {
+                            Logger.getLogger(CLI.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                    }
+                }
             }
 
         }, 0, 5000);
@@ -378,8 +469,8 @@ public class Monitoramento extends javax.swing.JFrame {
         });
 
     }
-    
-    public void setIdentificador(Integer ident){
+
+    public void setIdentificador(Integer ident) {
         identificador = ident;
     }
 
